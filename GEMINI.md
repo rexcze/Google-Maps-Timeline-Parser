@@ -1,65 +1,47 @@
-# Gemini Project Context: Google Maps Timeline Parser
+# Gemini Project Context: Google Maps Timeline Heatmap (Web)
 
-This project is a Python-based utility designed to parse, analyze, and visualize Google Maps Timeline data (exported as JSON). It provides tools for generating heatmaps, GPX files, and calculating total travel distance while persisting the data in a local SQLite database.
+This project is a privacy-focused, client-side web application designed to parse and visualize Google Maps Timeline data (JSON). It transforms raw location history into an interactive heatmap with advanced filtering and playback capabilities.
 
 ## Project Overview
 
-- **Purpose**: Transform raw Google Maps Timeline JSON exports into actionable formats (GPX, Heatmap) and store them for historical analysis.
+- **Purpose**: Provide a modern, browser-based interface for analyzing Google Maps Timeline exports without data ever leaving the user's machine.
 - **Tech Stack**:
-  - **Language**: Python 3.10+ (utilizes type hints and dataclasses).
-  - **Database**: SQLite (via `sqlite3` and custom Repository pattern).
-  - **Visualization**: `folium` (for interactive HTML heatmaps).
-  - **Core Libraries**: `argparse`, `json`, `math`, `dataclasses`.
+  - **Frontend**: HTML5, Vanilla CSS3 (Glassmorphism), Modern JavaScript (ES6+).
+  - **Mapping**: [Leaflet.js](https://leafletjs.com/) for interactive maps.
+  - **Visualization**: [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for heatmap rendering.
+  - **UI Components**: [noUiSlider](https://refreshless.com/nouislider/) for date range filtering.
+  - **Theming**: Dark and Light mode support with [CartoDB](https://carto.com/basemaps/) basemaps.
+
+### Key Features
+- **Zero-Backend Parsing**: Full privacy; processing via browser File API.
+- **Time Machine**: Chronological date filtering and playback animation.
+- **Seasonality Filters**: View travels specifically by season (Summer, Winter, etc.).
+- **Advanced Heatmap Controls**: Adjust radius, blur, opacity, and sensitivity (noise clipping).
+- **Intensity Scaling**: Support for Additive, Linear, and Logarithmic density scaling.
+- **Custom Palettes**: Includes high-contrast and color-blind friendly themes (Magma, Viridis, Plasma).
 
 ### Architecture
-
-The project follows a clean, layered architecture:
-- **Models** (`models/`): Simple data structures using `@dataclass` (e.g., `Location`).
-- **Infrastructure** (`database/`): Manages the SQLite connection lifecycle.
-- **Repositories** (`repositories/`): Handles SQL operations and data persistence for specific models.
-- **Services** (`services/`): Contains the business logic:
-    - `parser_service.py`: Extracts visit and path data from Google's semantic JSON format.
-    - `export_service.py`: Generates GPX and Folium-based HTML heatmaps.
-    - `distance_service.py`: Implements the Haversine formula to calculate travel distances.
-- **Entry Point** (`main.py`): Orchestrates the CLI interface and service execution.
+The application is contained within a single `index.html` file for portability and ease of use.
+- **Models/Logic**: 
+    - `TimelineParser`: Static utility for extracting coordinates and timestamps from various Google Maps JSON formats.
+    - `DistanceCalculator`: Implements the Haversine formula to calculate total travel distance.
+- **State Management**: Local state handles filtered data and UI settings (persisted via `localStorage` where applicable).
+- **View Layer**: Leaflet-based map with custom floating glassmorphism UI cards.
 
 ## Building and Running
 
 ### Prerequisites
-
-The project requires `folium` for heatmap generation.
-```bash
-pip install folium
-```
+No build step is required. Any modern web browser is sufficient.
 
 ### Usage
-
-The script is executed via `main.py` with the path to your Google Maps JSON export.
-
-```bash
-# Basic parsing and database storage
-python main.py location_history.json
-
-# Export to GPX and Generate Heatmap
-python main.py location_history.json --gpx --heatmap
-
-# Calculate total distance travelled
-python main.py location_history.json --distance
-
-# Specify a custom database path
-python main.py location_history.json --db my_timeline.db
-```
-
-### CLI Arguments
-- `json_file`: (Required) Path to the extracted Google Maps Timeline JSON file.
-- `--db`: Path to the SQLite database (default: `timeline.db`).
-- `--gpx`: Flag to export locations to `timeline.gpx`.
-- `--heatmap`: Flag to generate `travel_heatmap.html`.
-- `--distance`: Flag to print total distance covered in kilometers.
+1. Open `index.html` in a web browser.
+2. Upload a Google Maps Timeline JSON file (Takeout export).
+3. Use the **Time Machine** dock at the bottom to filter by date or play an animation of your travel history.
+4. Access **Advanced Options** via the gear icon in the top-right to customize visuals and scaling.
 
 ## Development Conventions
 
-- **Type Safety**: The codebase uses strict Python type hints. Ensure any new code maintains this standard.
-- **Layered Design**: Maintain the separation between Repositories (data access) and Services (logic). Do not put SQL queries directly into services.
-- **Data Persistence**: Uses `INSERT OR IGNORE` based on the `timestamp` primary key to avoid duplicate entries when re-parsing the same or overlapping data.
-- **Parsing Logic**: The `TimelineParserService` handles both `visit` segments (locations with semantic types) and `timelinePath` segments (raw breadcrumbs).
+- **Privacy First**: Never introduce features that send coordinate data to external APIs.
+- **Performance**: Use loops and optimized filtering for large datasets (100k+ points); avoid the spread operator on large arrays to prevent stack overflows.
+- **Theming**: Adhere to the Glassmorphism aesthetic. Use CSS variables defined in `:root` and `.dark-theme` for all colors.
+- **Modularity**: Keep the `TimelineParser` and `DistanceCalculator` logic decoupled from the DOM manipulation.
