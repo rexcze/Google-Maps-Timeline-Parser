@@ -1,9 +1,0 @@
-[project]
-name = "google-maps-timeline-parser"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.14"
-dependencies = [
-    "folium>=0.20.0",
-]
