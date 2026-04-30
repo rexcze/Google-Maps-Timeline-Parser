@@ -93,7 +93,7 @@
             display: none;
         }
         input[type="range"] {
-            width: 100px;
+            width: 80px;
             cursor: pointer;
         }
     </style>
@@ -118,6 +118,10 @@
                 <div class="control-item">
                     <label for="blurSlider">Blur: <span id="blurValue">15</span></label>
                     <input type="range" id="blurSlider" min="1" max="50" value="15">
+                </div>
+                <div class="control-item">
+                    <label for="opacitySlider">Opacity: <span id="opacityValue">0.7</span></label>
+                    <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="0.7">
                 </div>
             </div>
 
@@ -251,19 +255,28 @@
         
         const radius = parseInt(document.getElementById('radiusSlider').value);
         const blur = parseInt(document.getElementById('blurSlider').value);
+        const opacity = parseFloat(document.getElementById('opacitySlider').value);
         
         document.getElementById('radiusValue').textContent = radius;
         document.getElementById('blurValue').textContent = blur;
+        document.getElementById('opacityValue').textContent = opacity;
 
         if (heatLayer) map.removeLayer(heatLayer);
         heatLayer = L.heatLayer(currentPoints, {
             radius: radius,
-            blur: blur
+            blur: blur,
+            minOpacity: 0.05
         }).addTo(map);
+
+        // Apply opacity via container if setOpacity is missing
+        if (heatLayer._canvas) {
+            heatLayer._canvas.style.opacity = opacity;
+        }
     }
 
     document.getElementById('radiusSlider').addEventListener('input', updateHeatmap);
     document.getElementById('blurSlider').addEventListener('input', updateHeatmap);
+    document.getElementById('opacitySlider').addEventListener('input', updateHeatmap);
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
