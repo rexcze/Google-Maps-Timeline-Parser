@@ -93,7 +93,7 @@
             display: none;
         }
         input[type="range"] {
-            width: 120px;
+            width: 100px;
             cursor: pointer;
         }
     </style>
@@ -110,9 +110,15 @@
                 Points: <span id="pointCount">0</span> | Dist: <span id="distance">0</span> km
             </div>
             
-            <div id="radiusControl" class="control-item" style="display: none;">
-                <label for="radiusSlider">Radius: <span id="radiusValue">25</span></label>
-                <input type="range" id="radiusSlider" min="1" max="50" value="25">
+            <div class="geo-controls" id="geoControls" style="display: none; gap: 1rem;">
+                <div class="control-item">
+                    <label for="radiusSlider">Radius: <span id="radiusValue">25</span></label>
+                    <input type="range" id="radiusSlider" min="1" max="50" value="25">
+                </div>
+                <div class="control-item">
+                    <label for="blurSlider">Blur: <span id="blurValue">15</span></label>
+                    <input type="range" id="blurSlider" min="1" max="50" value="15">
+                </div>
             </div>
 
             <div class="file-input-wrapper">
@@ -244,16 +250,20 @@
         if (!currentPoints.length) return;
         
         const radius = parseInt(document.getElementById('radiusSlider').value);
+        const blur = parseInt(document.getElementById('blurSlider').value);
+        
         document.getElementById('radiusValue').textContent = radius;
+        document.getElementById('blurValue').textContent = blur;
 
         if (heatLayer) map.removeLayer(heatLayer);
         heatLayer = L.heatLayer(currentPoints, {
             radius: radius,
-            blur: Math.max(1, Math.floor(radius * 0.6))
+            blur: blur
         }).addTo(map);
     }
 
     document.getElementById('radiusSlider').addEventListener('input', updateHeatmap);
+    document.getElementById('blurSlider').addEventListener('input', updateHeatmap);
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -279,7 +289,7 @@
                 document.getElementById('pointCount').textContent = locations.length.toLocaleString();
                 document.getElementById('distance').textContent = distance.toFixed(0);
                 document.getElementById('statsDisplay').style.display = 'block';
-                document.getElementById('radiusControl').style.display = 'flex';
+                document.getElementById('geoControls').style.display = 'flex';
 
                 updateHeatmap();
                 
