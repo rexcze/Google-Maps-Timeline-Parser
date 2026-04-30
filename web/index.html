@@ -96,6 +96,14 @@
             width: 80px;
             cursor: pointer;
         }
+        select {
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid #dadce0;
+            font-size: 0.8rem;
+            color: #3c4043;
+            outline: none;
+        }
     </style>
 </head>
 <body>
@@ -111,6 +119,13 @@
             </div>
             
             <div class="geo-controls" id="geoControls" style="display: none; gap: 1rem;">
+                <div class="control-item">
+                    <label for="scalingSelect">Scaling</label>
+                    <select id="scalingSelect">
+                        <option value="linear">Linear</option>
+                        <option value="log">Logarithmic</option>
+                    </select>
+                </div>
                 <div class="control-item">
                     <label for="radiusSlider">Radius: <span id="radiusValue">25</span></label>
                     <input type="range" id="radiusSlider" min="1" max="50" value="25">
@@ -248,27 +263,48 @@
     }).addTo(map);
 
     let heatLayer = null;
-    let currentPoints = [];
+    let rawLocations = [];
 
     function updateHeatmap() {
-        if (!currentPoints.length) return;
+        if (!rawLocations.length) return;
         
         const radius = parseInt(document.getElementById('radiusSlider').value);
         const blur = parseInt(document.getElementById('blurSlider').value);
         const opacity = parseFloat(document.getElementById('opacitySlider').value);
+        const scaling = document.getElementById('scalingSelect').value;
         
         document.getElementById('radiusValue').textContent = radius;
         document.getElementById('blurValue').textContent = blur;
         document.getElementById('opacityValue').textContent = opacity;
 
+        // Group points by coordinate to calculate density
+        const groups = {};
+        const precision = 4;
+        
+        rawLocations.forEach(l => {
+            const key = `${l.lat.toFixed(precision)},${l.lng.toFixed(precision)}`;
+            if (!groups[key]) groups[key] = { lat: l.lat, lng: l.lng, count: 0 };
+            groups[key].count++;
+        });
+
+        let maxIntensity = 0;
+        const points = Object.values(groups).map(g => {
+            let intensity = g.count;
+            if (scaling === 'log') {
+                intensity = Math.log10(g.count + 1);
+            }
+            if (intensity > maxIntensity) maxIntensity = intensity;
+            return [g.lat, g.lng, intensity];
+        });
+
         if (heatLayer) map.removeLayer(heatLayer);
-        heatLayer = L.heatLayer(currentPoints, {
+        heatLayer = L.heatLayer(points, {
             radius: radius,
             blur: blur,
-            minOpacity: 0.05
+            minOpacity: 0.05,
+            max: maxIntensity || 1
         }).addTo(map);
 
-        // Apply opacity via container if setOpacity is missing
         if (heatLayer._canvas) {
             heatLayer._canvas.style.opacity = opacity;
         }
@@ -277,6 +313,7 @@
     document.getElementById('radiusSlider').addEventListener('input', updateHeatmap);
     document.getElementById('blurSlider').addEventListener('input', updateHeatmap);
     document.getElementById('opacitySlider').addEventListener('input', updateHeatmap);
+    document.getElementById('scalingSelect').addEventListener('change', updateHeatmap);
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -295,11 +332,11 @@
                     return;
                 }
 
-                currentPoints = locations.map(l => [l.lat, l.lng]);
+                rawLocations = locations;
 
                 // Update Stats
-                const distance = DistanceCalculator.calculateTotal(locations);
-                document.getElementById('pointCount').textContent = locations.length.toLocaleString();
+                const distance = DistanceCalculator.calculateTotal(rawLocations);
+                document.getElementById('pointCount').textContent = rawLocations.length.toLocaleString();
                 document.getElementById('distance').textContent = distance.toFixed(0);
                 document.getElementById('statsDisplay').style.display = 'block';
                 document.getElementById('geoControls').style.display = 'flex';
@@ -307,12 +344,12 @@
                 updateHeatmap();
                 
                 // Fit bounds
-                const bounds = L.latLngBounds(currentPoints);
+                const bounds = L.latLngBounds(rawLocations.map(l => [l.lat, l.lng]));
                 map.fitBounds(bounds);
 
             } catch (err) {
-                console.error(err);
-                alert("Error parsing JSON file. Make sure it's a valid Google Maps export.");
+                console.error("Parsing Error:", err);
+                alert("Error processing data. Your file might be very large or corrupted.");
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
