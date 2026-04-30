@@ -1,4 +1,29 @@
-timeline.db
-timeline.gpx
-Timeline.json
-travel_heatmap.html
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+
+# Virtual Environments
+.venv/
+venv/
+env/
+.env
+
+# Data & Exports (Sensitive)
+*.json
+*.db
+*.sqlite3
+*.gpx
+*.html
+!example.png
+
+# IDEs & System
+.idea/
+.vscode/
+.DS_Store
+*.log
+
+# UV (Optional: usually committed for apps, but kept here for completeness)
+# uv.lock
