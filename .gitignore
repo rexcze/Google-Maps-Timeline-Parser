@@ -17,6 +17,7 @@ env/
 *.sqlite3
 *.gpx
 *.html
+!web/*.html
 !example.png
 
 # IDEs & System

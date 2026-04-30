@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Timeline Heatmap</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: #ffffff;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+        .stats {
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .btn {
+            background-color: #4285f4;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background-color: #357ae8;
+        }
+        #fileInput {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <header>
+        <div>
+            <h1 style="margin:0; font-size: 1.2rem; color: #4285f4;">Timeline Heatmap</h1>
+        </div>
+        <div class="controls">
+            <div id="statsDisplay" class="stats" style="display: none;">
+                Points: <span id="pointCount">0</span> | Distance: <span id="distance">0</span> km
+            </div>
+            <div class="file-input-wrapper">
+                <button class="btn">Upload JSON</button>
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+        </div>
+    </header>
+    <div id="map"></div>
+</div>
+
+<div id="loading">Processing your timeline data...</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<script>
+    class TimelineParser {
+        static extractCoords(obj) {
+            if (!obj) return null;
+            if (typeof obj === 'string') return this.splitLatLng(obj);
+            if (typeof obj !== 'object') return null;
+
+            if (obj.latitudeE7 !== undefined && obj.longitudeE7 !== undefined) {
+                return [obj.latitudeE7 / 1e7, obj.longitudeE7 / 1e7];
+            }
+
+            for (const key of ['latLng', 'point', 'placeLocation']) {
+                if (obj[key] && typeof obj[key] === 'string') {
+                    return this.splitLatLng(obj[key]);
+                }
+            }
+            return null;
+        }
+
+        static splitLatLng(raw) {
+            const cleaned = raw.replace('geo:', '').replace(/°/g, '').trim();
+            const sep = cleaned.includes(',') ? ',' : ' ';
+            const parts = cleaned.split(sep);
+            if (parts.length < 2) return null;
+            return [parseFloat(parts[0]), parseFloat(parts[1])];
+        }
+
+        static parse(data) {
+            let segments = [];
+            if (Array.isArray(data)) {
+                segments = data;
+            } else if (typeof data === 'object') {
+                segments = data.semanticSegments || data.timelineObjects || data.locations || [];
+            }
+
+            const locations = [];
+            for (const segment of segments) {
+                if (typeof segment !== 'object') continue;
+
+                if (segment.visit) {
+                    const coords = this.extractCoords(segment.visit.topCandidate);
+                    if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                } 
+                else if (segment.activity) {
+                    ['start', 'end'].forEach(key => {
+                        const coords = this.extractCoords(segment.activity[key]);
+                        if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                    });
+                }
+                else if (segment.placeVisit) {
+                    const coords = this.extractCoords(segment.placeVisit.location);
+                    if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                }
+                else if (segment.activitySegment) {
+                    const act = segment.activitySegment;
+                    ['startLocation', 'endLocation'].forEach(key => {
+                        const coords = this.extractCoords(act[key]);
+                        if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                    });
+                    const waypoints = (act.waypointPath && act.waypointPath.waypoints) || 
+                                    (act.simplifiedRawPath && act.simplifiedRawPath.points) || [];
+                    waypoints.forEach(p => {
+                        const coords = this.extractCoords(p);
+                        if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                    });
+                }
+
+                if (segment.timelinePath) {
+                    segment.timelinePath.forEach(p => {
+                        const coords = this.extractCoords(p);
+                        if (coords) locations.push({ lat: coords[0], lng: coords[1] });
+                    });
+                }
+            }
+            return locations;
+        }
+    }
+
+    class DistanceCalculator {
+        static haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        static calculateTotal(locations) {
+            let total = 0;
+            for (let i = 1; i < locations.length; i++) {
+                total += this.haversine(
+                    locations[i-1].lat, locations[i-1].lng,
+                    locations[i].lat, locations[i].lng
+                );
+            }
+            return total;
+        }
+    }
+
+    // App Initialization
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let heatLayer = null;
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        document.getElementById('loading').style.display = 'block';
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                const locations = TimelineParser.parse(data);
+                
+                if (locations.length === 0) {
+                    alert("No location data found in the uploaded file.");
+                    return;
+                }
+
+                // Update Stats
+                const distance = DistanceCalculator.calculateTotal(locations);
+                document.getElementById('pointCount').textContent = locations.length.toLocaleString();
+                document.getElementById('distance').textContent = distance.toFixed(2);
+                document.getElementById('statsDisplay').style.display = 'block';
+
+                // Update Map
+                if (heatLayer) map.removeLayer(heatLayer);
+                
+                const points = locations.map(l => [l.lat, l.lng]);
+                heatLayer = L.heatLayer(points, {radius: 25, blur: 15}).addTo(map);
+                
+                // Fit bounds
+                const bounds = L.latLngBounds(points);
+                map.fitBounds(bounds);
+
+            } catch (err) {
+                console.error(err);
+                alert("Error parsing JSON file. Make sure it's a valid Google Maps export.");
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+        reader.readAsText(file);
+    });
+</script>
+
+</body>
+</html>
