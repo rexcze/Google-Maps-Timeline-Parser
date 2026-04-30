@@ -1,84 +1,358 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Maps Timeline Heatmap</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <title>Timeline Heatmap | Modern Edition</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
     <style>
-        body, html {
+        :root {
+            /* Light Mode (Default) */
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --accent: #4285f4;
+            --text: #3c4043;
+            --sub-text: #70757a;
+            --input-bg: rgba(0, 0, 0, 0.05);
+            --card-shadow: rgba(0, 0, 0, 0.15);
+        }
+
+        body.dark-theme {
+            --glass-bg: rgba(25, 25, 25, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --sub-text: rgba(255, 255, 255, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --card-shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body,
+        html {
             margin: 0;
             padding: 0;
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #f8f9fa;
+            color: var(--text);
+            overflow: hidden;
+            transition: background-color 0.3s;
         }
-        #container {
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            background: #eee;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px var(--card-shadow);
+            z-index: 1000;
+            position: absolute;
+            transition: background 0.3s, border 0.3s, box-shadow 0.3s;
+        }
+
+        .left-pill {
+            top: 20px;
+            left: 20px;
+            padding: 0.8rem 1.2rem;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            gap: 1rem;
+            max-width: 350px;
+            border-radius: 20px;
         }
-        header {
-            background-color: #ffffff;
-            padding: 0.75rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        .pill-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .right-pill {
+            top: 20px;
+            right: 20px;
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-radius: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .stat-item svg {
+            color: var(--accent);
+        }
+
+        .stat-separator {
+            color: var(--glass-border);
+            font-weight: 300;
+        }
+
+        .icon-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        #settingsToggle {
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.2s, color 0.2s;
+        }
+
+        #settingsToggle.active {
+            background: var(--accent);
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        #settingsToggle.active:hover {
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        #playback-dock.glass-card {
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 1.5rem;
+            width: calc(100% - 60px);
+            max-width: 800px;
+            border-radius: 40px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        .theme-toggle {
+            cursor: pointer;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
+            padding: 0;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .sidebar-drawer {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            bottom: 0;
+            width: 300px;
+            border-radius: 20px 0 0 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 2000;
+        }
+
+        .sidebar-drawer.open {
+            right: 0;
+        }
+
+        .sidebar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 1000;
         }
-        .controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
         }
-        #map {
+
+        .sidebar-content {
             flex-grow: 1;
-            width: 100%;
-        }
-        .stats {
-            background: #f1f3f4;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            color: #5f6368;
-            border: 1px solid #dadce0;
-        }
-        
-        details {
-            position: relative;
-            background: #fff;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
-        }
-        details summary {
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #3c4043;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        details summary::before {
-            content: '⚙️';
-        }
-        .settings-content {
-            position: absolute;
-            top: 110%;
-            right: 0;
-            background: white;
-            padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-radius: 8px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
-            width: 260px;
-            border: 1px solid #eee;
+            padding-right: 5px;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+
+        .segmented-control {
+            display: flex;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .seg-btn {
+            flex: 1;
+            padding: 8px 0;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .seg-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .seg-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .accordion-menu {
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .accordion-menu summary {
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: color 0.2s;
+        }
+
+        .accordion-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .accordion-menu summary:hover {
+            color: var(--accent);
+        }
+
+        .accordion-menu summary::after {
+            content: '▼';
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+        }
+
+        .accordion-menu[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            padding: 15px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-top: 15px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .sidebar-footer label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--sub-text);
+            text-transform: uppercase;
+        }
+
+        .legend-bar {
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(to right, blue, cyan, lime, yellow, red);
+            border: 1px solid var(--glass-border);
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--sub-text);
         }
 
         .control-item {
@@ -86,397 +360,599 @@
             flex-direction: column;
             gap: 6px;
         }
-        .control-item label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #70757a;
-            text-transform: uppercase;
-        }
-        .checkbox-item {
+
+        .label-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            color: #3c4043;
-        }
-        input[type="range"] {
-            width: 100%;
-            cursor: pointer;
-        }
-        select {
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #dadce0;
-            font-size: 0.8rem;
+            gap: 6px;
+            justify-content: space-between;
         }
 
-        .btn-play {
-            background-color: #34a853;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
+        .control-item label {
+            font-size: 0.7rem;
             font-weight: 600;
-            margin-top: 5px;
+            color: var(--sub-text);
+            text-transform: uppercase;
         }
-        .btn-play:hover { background-color: #2d9249; }
 
-        #time-slider { margin: 10px 0 30px 0; }
-
-        .file-input-wrapper {
+        .hint-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            background: var(--input-bg);
+            color: var(--text);
+            border-radius: 50%;
+            font-size: 9px;
+            cursor: help;
             position: relative;
-            overflow: hidden;
-            display: inline-block;
         }
-        .btn {
-            background-color: #4285f4;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
+
+        .hint-icon:hover {
+            background: var(--accent);
+            color: #fff;
         }
-        #fileInput {
-            font-size: 100px;
+
+        .hint-icon::after {
+            content: attr(data-hint);
             position: absolute;
-            left: 0;
-            top: 0;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #111;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            width: 180px;
+            line-height: 1.4;
+            pointer-events: none;
             opacity: 0;
-            cursor: pointer;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+            text-transform: none;
+            font-weight: normal;
+            border: 1px solid var(--glass-border);
         }
+
+        .hint-icon:hover::after {
+            opacity: 1;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--input-bg);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(66, 133, 244, 0.3);
+        }
+
+        select {
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .play-toggle {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+            transition: transform 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .play-toggle:hover {
+            transform: scale(1.05);
+            background: #357ae8;
+        }
+
+        .play-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            margin-left: 3px;
+        }
+
+        .play-toggle.playing svg {
+            margin-left: 0;
+        }
+
+        #time-slider-wrapper {
+            flex-grow: 1;
+            padding: 0 10px;
+        }
+
+        /* noUiSlider Overrides */
+        .noUi-target {
+            background: var(--input-bg);
+            border: none;
+            border-radius: 10px;
+            height: 8px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .noUi-connect {
+            background: #00e5ff;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+
+        .noUi-handle {
+            border: 2px solid #fff;
+            background: #00e5ff;
+            width: 20px !important;
+            height: 20px !important;
+            right: -10px !important;
+            top: -6px !important;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .noUi-handle:hover {
+            transform: scale(1.1);
+        }
+
+        .noUi-handle::before,
+        .noUi-handle::after {
+            display: none;
+        }
+
+        .noUi-tooltip {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            bottom: 150%;
+            box-shadow: 0 4px 12px var(--card-shadow);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
         #loading {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 2000;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
             display: none;
+            place-items: center;
+            z-index: 2000;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .leaflet-bottom.leaflet-right {
+            margin-bottom: 100px;
+            margin-right: 20px;
         }
     </style>
 </head>
+
 <body>
 
-<div id="container">
-    <header>
-        <div>
-            <h1 style="margin:0; font-size: 1.1rem; color: #4285f4;">Timeline Heatmap</h1>
-        </div>
-        <div class="controls">
-            <div id="statsDisplay" class="stats" style="display: none;">
-                Points: <span id="pointCount">0</span> | Dist: <span id="distance">0</span> km
+    <div id="map"></div>
+
+    <header class="glass-card left-pill">
+        <div class="pill-content">
+            <h1>Timeline</h1>
+            <div class="header-actions">
+                <label for="fileInput" class="icon-btn" title="Upload History JSON">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </label>
+                <input type="file" id="fileInput" accept=".json" style="display:none;">
+                <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">🌓</button>
             </div>
-            
-            <details id="advancedSettings" style="display: none;">
-                <summary>Advanced Options</summary>
-                <div class="settings-content">
+        </div>
+    </header>
+
+    <aside id="settingsSidebar" class="glass-card sidebar-drawer">
+        <div class="sidebar-header">
+            <h2>Settings</h2>
+            <button class="icon-btn" id="closeSidebar" title="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="control-item">
+                <div class="label-wrapper"><label>Seasonality</label></div>
+                <div class="segmented-control" id="seasonGroup">
+                    <button class="seg-btn active" data-val="all">All</button>
+                    <button class="seg-btn" data-val="spring">Spr</button>
+                    <button class="seg-btn" data-val="summer">Sum</button>
+                    <button class="seg-btn" data-val="fall">Aut</button>
+                    <button class="seg-btn" data-val="winter">Win</button>
+                </div>
+            </div>
+
+            <div class="control-item">
+                <div class="label-wrapper">
+                    <label for="themeSelect">Color Palette</label>
+                </div>
+                <select id="themeSelect">
+                    <option value="classic">Classic (Red/Yellow)</option>
+                    <option value="magma">Magma (Purple/Orange)</option>
+                    <option value="viridis">Viridis (High Contrast)</option>
+                    <option value="plasma">Plasma (Vibrant)</option>
+                    <option value="cold">Cold (Blue/Cyan)</option>
+                </select>
+                <label class="checkbox-item" style="font-size: 0.75rem; margin-top: 5px;">
+                    <input type="checkbox" id="invertCheck"> Invert Colors
+                </label>
+            </div>
+
+            <div class="control-item">
+                <div class="label-wrapper">
+                    <label for="scalingSelect">Intensity Scaling</label>
+                </div>
+                <select id="scalingSelect">
+                    <option value="default">Default (Additive Path)</option>
+                    <option value="linear">Linear Density</option>
+                    <option value="log">Logarithmic Density</option>
+                </select>
+            </div>
+
+            <div class="control-item">
+                <div class="label-wrapper">
+                    <label for="thresholdSlider">Sensitivity: <span id="thresholdValue">0</span>%</label>
+                </div>
+                <input type="range" id="thresholdSlider" min="0" max="90" value="0">
+            </div>
+
+            <details class="accordion-menu">
+                <summary>Heatmap Controls</summary>
+                <div class="accordion-content">
                     <div class="control-item">
-                        <label>Time Machine</label>
-                        <div id="time-slider"></div>
-                        <button id="playBtn" class="btn-play">Play Animation</button>
-                    </div>
-                    <div class="control-item">
-                        <label for="seasonSelect">Seasonality</label>
-                        <select id="seasonSelect">
-                            <option value="all">All Year</option>
-                            <option value="summer">Summer (Jun-Aug)</option>
-                            <option value="winter">Winter (Dec-Feb)</option>
-                            <option value="spring">Spring (Mar-May)</option>
-                            <option value="fall">Fall (Sep-Nov)</option>
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label for="themeSelect">Color Palette</label>
-                        <select id="themeSelect">
-                            <option value="classic">Classic (Red/Yellow)</option>
-                            <option value="magma">Magma (Purple/Orange)</option>
-                            <option value="viridis">Viridis (High Contrast)</option>
-                            <option value="plasma">Plasma (Vibrant)</option>
-                            <option value="cold">Cold (Blue/Cyan)</option>
-                        </select>
-                        <label class="checkbox-item">
-                            <input type="checkbox" id="invertCheck"> Invert Colors
-                        </label>
-                    </div>
-                    <div class="control-item">
-                        <label for="scalingSelect">Intensity Scaling</label>
-                        <select id="scalingSelect">
-                            <option value="default">Default (Additive Path)</option>
-                            <option value="linear">Linear Density</option>
-                            <option value="log">Logarithmic Density</option>
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label for="radiusSlider">Radius: <span id="radiusValue">15</span></label>
+                        <div class="label-wrapper"><label>Radius: <span id="radiusValue">15</span></label></div>
                         <input type="range" id="radiusSlider" min="1" max="50" value="15">
                     </div>
                     <div class="control-item">
-                        <label for="blurSlider">Blur: <span id="blurValue">10</span></label>
+                        <div class="label-wrapper"><label>Blur: <span id="blurValue">10</span></label></div>
                         <input type="range" id="blurSlider" min="1" max="50" value="10">
                     </div>
                     <div class="control-item">
-                        <label for="opacitySlider">Opacity: <span id="opacityValue">0.8</span></label>
+                        <div class="label-wrapper"><label>Opacity: <span id="opacityValue">0.8</span></label></div>
                         <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="0.8">
-                    </div>
-                    <div class="control-item">
-                        <label for="thresholdSlider">Sensitivity: <span id="thresholdValue">0</span>%</label>
-                        <input type="range" id="thresholdSlider" min="0" max="90" value="0">
                     </div>
                 </div>
             </details>
 
-            <div class="file-input-wrapper">
-                <button class="btn">Upload JSON</button>
-                <input type="file" id="fileInput" accept=".json">
-            </div>
         </div>
-    </header>
-    <div id="map"></div>
-</div>
+        <div class="sidebar-footer">
+            <label>Density Legend</label>
+            <div class="legend-bar" id="legendBar"></div>
+            <div class="legend-labels"><span>Low</span><span>High</span></div>
+        </div>
+    </aside>
 
-<div id="loading">Processing your timeline data...</div>
+    <div id="statsDisplay" class="glass-card right-pill" style="display: none;">
+        <span class="stat-item" title="Points">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span id="pointCount">0</span>
+        </span>
+        <span class="stat-separator">|</span>
+        <span class="stat-item" title="Distance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="19" r="3" />
+                <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+                <circle cx="18" cy="5" r="3" />
+            </svg>
+            <span><span id="distance">0</span> km</span>
+        </span>
+        <span class="stat-separator">|</span>
+        <button class="icon-btn" id="settingsToggle" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+        </button>
+    </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
+    <div id="playback-dock" class="glass-card">
+        <button id="playBtn" class="play-toggle" title="Play/Pause">
+            <svg id="playIcon" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+            </svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+        </button>
+        <div id="time-slider-wrapper">
+            <div id="time-slider"></div>
+        </div>
+    </div>
 
-<script>
-    class TimelineParser {
-        static extractCoords(obj) {
-            if (!obj) return null;
-            if (typeof obj === 'string') return this.splitLatLng(obj);
-            if (typeof obj !== 'object') return null;
-            if (obj.latitudeE7 !== undefined && obj.longitudeE7 !== undefined) {
-                return [obj.latitudeE7 / 1e7, obj.longitudeE7 / 1e7];
+    <div id="loading">Processing timeline data...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
+
+    <script>
+        class TimelineParser {
+            static extractCoords(obj) {
+                if (!obj) return null;
+                if (typeof obj === 'string') return this.splitLatLng(obj);
+                if (typeof obj !== 'object') return null;
+                if (obj.latitudeE7 !== undefined && obj.longitudeE7 !== undefined) return [obj.latitudeE7 / 1e7, obj.longitudeE7 / 1e7];
+                for (const key of ['latLng', 'point', 'placeLocation']) if (obj[key] && typeof obj[key] === 'string') return this.splitLatLng(obj[key]);
+                return null;
             }
-            for (const key of ['latLng', 'point', 'placeLocation']) {
-                if (obj[key] && typeof obj[key] === 'string') return this.splitLatLng(obj[key]);
+            static splitLatLng(raw) {
+                const cleaned = raw.replace('geo:', '').replace(/°/g, '').trim();
+                const parts = cleaned.split(cleaned.includes(',') ? ',' : ' ');
+                if (parts.length < 2) return null;
+                return [parseFloat(parts[0]), parseFloat(parts[1])];
             }
-            return null;
+            static extractTimestamp(obj, segment) {
+                const ts = obj.startTime || obj.timestamp || obj.timestampMs || segment.startTime || segment.startTimeMs || (obj.duration && (obj.duration.startTime || obj.duration.startTimeMs)) || "";
+                if (!ts) return 0;
+                const parsed = new Date(isNaN(ts) ? ts : parseInt(ts)).getTime();
+                return isNaN(parsed) ? 0 : parsed;
+            }
+            static parse(data) {
+                let raw = Array.isArray(data) ? data : (data.semanticSegments || data.timelineObjects || data.locations || []);
+                const locations = [];
+                raw.forEach(seg => {
+                    const process = (obj) => {
+                        const coords = this.extractCoords(obj);
+                        if (coords) locations.push({ lat: coords[0], lng: coords[1], ts: this.extractTimestamp(obj, seg) });
+                    };
+                    if (seg.visit) process(seg.visit.topCandidate);
+                    else if (seg.placeVisit) process(seg.placeVisit.location);
+                    else if (seg.activitySegment) {
+                        process(seg.activitySegment.startLocation);
+                        process(seg.activitySegment.endLocation);
+                        (seg.activitySegment.waypointPath?.waypoints || seg.activitySegment.simplifiedRawPath?.points || []).forEach(process);
+                    }
+                    if (seg.timelinePath) seg.timelinePath.forEach(process);
+                });
+                return locations.sort((a, b) => a.ts - b.ts);
+            }
         }
 
-        static splitLatLng(raw) {
-            const cleaned = raw.replace('geo:', '').replace(/°/g, '').trim();
-            const parts = cleaned.split(cleaned.includes(',') ? ',' : ' ');
-            if (parts.length < 2) return null;
-            return [parseFloat(parts[0]), parseFloat(parts[1])];
+        class DistanceCalculator {
+            static haversine(p1, p2) {
+                const R = 6371;
+                const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+                const dLon = (p2.lng - p1.lng) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            }
+            static calculateTotal(locs) {
+                let t = 0;
+                for (let i = 1; i < locs.length; i++) t += this.haversine(locs[i - 1], locs[i]);
+                return t;
+            }
         }
 
-        static extractTimestamp(obj, segment) {
-            const ts = obj.startTime || obj.timestamp || obj.timestampMs || segment.startTime || segment.startTimeMs || 
-                       (obj.duration && (obj.duration.startTime || obj.duration.startTimeMs)) || "";
-            if (!ts) return 0;
-            const parsed = new Date(isNaN(ts) ? ts : parseInt(ts)).getTime();
-            return isNaN(parsed) ? 0 : parsed;
+        const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        let currentTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        }).addTo(map);
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            const url = isDark
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+            map.removeLayer(currentTileLayer);
+            currentTileLayer = L.tileLayer(url, { attribution: '&copy; CARTO' }).addTo(map);
         }
 
-        static parse(data) {
-            let raw = Array.isArray(data) ? data : (data.semanticSegments || data.timelineObjects || data.locations || []);
-            const locations = [];
-            raw.forEach(seg => {
-                const process = (obj) => {
-                    const coords = this.extractCoords(obj);
-                    if (coords) locations.push({ lat: coords[0], lng: coords[1], ts: this.extractTimestamp(obj, seg) });
-                };
-                if (seg.visit) process(seg.visit.topCandidate);
-                else if (seg.placeVisit) process(seg.placeVisit.location);
-                else if (seg.activitySegment) {
-                    process(seg.activitySegment.startLocation);
-                    process(seg.activitySegment.endLocation);
-                    (seg.activitySegment.waypointPath?.waypoints || seg.activitySegment.simplifiedRawPath?.points || []).forEach(process);
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+        let heatLayer = null, rawLocations = [], timeSlider = null, isPlaying = false, animationFrame = null, currentSeason = 'all';
+        const THEMES = {
+            classic: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' },
+            magma: { 0.0: '#000004', 0.2: '#3b0f70', 0.4: '#8c2981', 0.6: '#de4968', 0.8: '#fe9f6d', 1.0: '#fcfdbf' },
+            viridis: { 0.0: '#440154', 0.2: '#414487', 0.4: '#2a788e', 0.6: '#22a884', 0.8: '#7ad151', 1.0: '#fde725' },
+            plasma: { 0.0: '#0d0887', 0.2: '#6a00a8', 0.4: '#b12a90', 0.6: '#e16462', 0.8: '#fca636', 1.0: '#f0f921' },
+            cold: { 0.4: '#004c6d', 0.6: '#008ba3', 0.7: '#00c691', 0.8: '#a1ff8a', 1.0: '#faff1f' }
+        };
+
+        function updateHeatmap() {
+            if (!rawLocations.length) return;
+            const radius = parseInt(document.getElementById('radiusSlider').value);
+            const blur = parseInt(document.getElementById('blurSlider').value);
+            const opacity = parseFloat(document.getElementById('opacitySlider').value);
+            const thresholdPercent = parseInt(document.getElementById('thresholdSlider').value) / 100;
+            const scaling = document.getElementById('scalingSelect').value;
+            const season = currentSeason;
+            const themeName = document.getElementById('themeSelect').value;
+            const invert = document.getElementById('invertCheck').checked;
+
+            document.getElementById('radiusValue').textContent = radius;
+            document.getElementById('blurValue').textContent = blur;
+            document.getElementById('opacityValue').textContent = opacity;
+            document.getElementById('thresholdValue').textContent = Math.round(thresholdPercent * 100);
+
+            const range = timeSlider ? timeSlider.get().map(v => +v) : [0, Infinity];
+            const filtered = rawLocations.filter(l => {
+                if (l.ts < range[0] || l.ts > range[1]) return false;
+                if (season !== 'all') {
+                    const m = new Date(l.ts).getMonth();
+                    if (season === 'winter' && ![11, 0, 1].includes(m)) return false;
+                    if (season === 'spring' && ![2, 3, 4].includes(m)) return false;
+                    if (season === 'summer' && ![5, 6, 7].includes(m)) return false;
+                    if (season === 'fall' && ![8, 9, 10].includes(m)) return false;
                 }
-                if (seg.timelinePath) seg.timelinePath.forEach(process);
+                return true;
             });
-            return locations.sort((a, b) => a.ts - b.ts);
-        }
-    }
 
-    class DistanceCalculator {
-        static haversine(p1, p2) {
-            const R = 6371;
-            const dLat = (p2.lat - p1.lat) * Math.PI / 180;
-            const dLon = (p2.lng - p1.lng) * Math.PI / 180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(p1.lat*Math.PI/180) * Math.cos(p2.lat*Math.PI/180) * Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        static calculateTotal(locs) {
-            let t = 0;
-            for (let i = 1; i < locs.length; i++) t += this.haversine(locs[i-1], locs[i]);
-            return t;
-        }
-    }
+            let finalPoints = [], maxIntensity = 1.0;
+            if (scaling !== 'default' || thresholdPercent > 0) {
+                const groups = {};
+                filtered.forEach(l => {
+                    const key = `${l.lat.toFixed(4)},${l.lng.toFixed(4)}`;
+                    if (!groups[key]) groups[key] = { lat: l.lat, lng: l.lng, count: 0 };
+                    groups[key].count++;
+                });
+                const grouped = Object.values(groups);
+                let peakCount = 0;
+                grouped.forEach(g => { if (g.count > peakCount) peakCount = g.count; });
+                if (scaling === 'log') maxIntensity = Math.log10(peakCount + 1);
+                else if (scaling === 'linear') maxIntensity = peakCount;
+                finalPoints = grouped.filter(g => g.count >= (peakCount * thresholdPercent)).map(g => {
+                    let val = scaling === 'log' ? Math.log10(g.count + 1) : g.count;
+                    return [g.lat, g.lng, scaling === 'default' ? 1 : (invert ? (maxIntensity - val) : val)];
+                });
+            } else finalPoints = filtered.map(l => [l.lat, l.lng]);
 
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors, &copy; CARTO'
-    }).addTo(map);
-
-    let heatLayer = null;
-    let rawLocations = [];
-    let timeSlider = null;
-    let isPlaying = false;
-    let animationFrame = null;
-
-    const THEMES = {
-        classic: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' },
-        magma: { 0.0: '#000004', 0.2: '#3b0f70', 0.4: '#8c2981', 0.6: '#de4968', 0.8: '#fe9f6d', 1.0: '#fcfdbf' },
-        viridis: { 0.0: '#440154', 0.2: '#414487', 0.4: '#2a788e', 0.6: '#22a884', 0.8: '#7ad151', 1.0: '#fde725' },
-        plasma: { 0.0: '#0d0887', 0.2: '#6a00a8', 0.4: '#b12a90', 0.6: '#e16462', 0.8: '#fca636', 1.0: '#f0f921' },
-        cold: { 0.4: '#004c6d', 0.6: '#008ba3', 0.7: '#00c691', 0.8: '#a1ff8a', 1.0: '#faff1f' }
-    };
-
-    function updateHeatmap() {
-        if (!rawLocations.length) return;
-        
-        const radius = parseInt(document.getElementById('radiusSlider').value);
-        const blur = parseInt(document.getElementById('blurSlider').value);
-        const opacity = parseFloat(document.getElementById('opacitySlider').value);
-        const thresholdPercent = parseInt(document.getElementById('thresholdSlider').value) / 100;
-        const scaling = document.getElementById('scalingSelect').value;
-        const season = document.getElementById('seasonSelect').value;
-        const themeName = document.getElementById('themeSelect').value;
-        const invert = document.getElementById('invertCheck').checked;
-
-        document.getElementById('radiusValue').textContent = radius;
-        document.getElementById('blurValue').textContent = blur;
-        document.getElementById('opacityValue').textContent = opacity;
-        document.getElementById('thresholdValue').textContent = Math.round(thresholdPercent * 100);
-
-        const range = timeSlider ? timeSlider.get().map(v => +v) : [0, Infinity];
-
-        const filtered = rawLocations.filter(l => {
-            if (l.ts < range[0] || l.ts > range[1]) return false;
-            if (season !== 'all') {
-                const m = new Date(l.ts).getMonth();
-                if (season === 'winter' && ![11, 0, 1].includes(m)) return false;
-                if (season === 'spring' && ![2, 3, 4].includes(m)) return false;
-                if (season === 'summer' && ![5, 6, 7].includes(m)) return false;
-                if (season === 'fall' && ![8, 9, 10].includes(m)) return false;
+            let gradient = { ...THEMES[themeName] };
+            if (invert && scaling === 'default') {
+                const keys = Object.keys(gradient).sort();
+                const values = keys.map(k => gradient[k]).reverse();
+                gradient = {}; keys.forEach((k, i) => gradient[k] = values[i]);
             }
-            return true;
+            if (heatLayer) map.removeLayer(heatLayer);
+            heatLayer = L.heatLayer(finalPoints, { radius, blur, minOpacity: 0.05, max: maxIntensity || 1, gradient }).addTo(map);
+            if (heatLayer._canvas) heatLayer._canvas.style.opacity = opacity;
+
+            // Update Legend
+            let legendColors = Object.keys(gradient).sort().map(k => gradient[k]);
+            document.getElementById('legendBar').style.background = `linear-gradient(to right, ${legendColors.join(', ')})`;
+        }
+
+        function togglePlayback() {
+            isPlaying = !isPlaying;
+            const playBtn = document.getElementById('playBtn');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+
+            if (isPlaying) {
+                playBtn.classList.add('playing');
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                animate();
+            } else {
+                playBtn.classList.remove('playing');
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+        function animate() {
+            const range = timeSlider.get().map(v => +v), bounds = timeSlider.options.range, step = (bounds.max - bounds.min) / 300;
+            let newEnd = range[1] + step;
+            if (newEnd > bounds.max) { newEnd = bounds.max; togglePlayback(); }
+            timeSlider.set([range[0], newEnd]);
+            if (isPlaying) animationFrame = requestAnimationFrame(animate);
+        }
+
+        ['radiusSlider', 'blurSlider', 'opacitySlider', 'thresholdSlider'].forEach(id => document.getElementById(id).addEventListener('input', updateHeatmap));
+        ['scalingSelect', 'themeSelect', 'invertCheck'].forEach(id => document.getElementById(id).addEventListener('change', updateHeatmap));
+        document.getElementById('playBtn').addEventListener('click', togglePlayback);
+
+        document.querySelectorAll('.seg-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentSeason = e.target.getAttribute('data-val');
+                updateHeatmap();
+            });
         });
 
-        let finalPoints = [];
-        let maxIntensity = 1.0;
+        document.getElementById('settingsToggle').addEventListener('click', () => {
+            document.getElementById('settingsSidebar').classList.add('open');
+            document.getElementById('settingsToggle').classList.add('active');
+        });
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('settingsSidebar').classList.remove('open');
+            document.getElementById('settingsToggle').classList.remove('active');
+        });
 
-        if (scaling !== 'default' || thresholdPercent > 0) {
-            const groups = {};
-            filtered.forEach(l => {
-                const key = `${l.lat.toFixed(4)},${l.lng.toFixed(4)}`;
-                if (!groups[key]) groups[key] = { lat: l.lat, lng: l.lng, count: 0 };
-                groups[key].count++;
-            });
-            const grouped = Object.values(groups);
-            let peakCount = 0;
-            grouped.forEach(g => { if(g.count > peakCount) peakCount = g.count; });
-            if (scaling === 'log') maxIntensity = Math.log10(peakCount + 1);
-            else if (scaling === 'linear') maxIntensity = peakCount;
-            const thresholdValue = peakCount * thresholdPercent;
-            finalPoints = grouped.filter(g => g.count >= thresholdValue).map(g => {
-                let val = scaling === 'log' ? Math.log10(g.count + 1) : g.count;
-                if (scaling === 'default') return [g.lat, g.lng];
-                return [g.lat, g.lng, invert ? (maxIntensity - val) : val];
-            });
-        } else {
-            finalPoints = filtered.map(l => [l.lat, l.lng]);
-        }
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('loading').style.display = 'grid';
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    rawLocations = TimelineParser.parse(data);
+                    if (!rawLocations.length) { alert("No data found."); return; }
 
-        // Theme application
-        let gradient = {...THEMES[themeName]};
-        if (invert && scaling === 'default') {
-            // Special handling for additive inversion: swap blue/red etc
-            const keys = Object.keys(gradient).sort();
-            const values = keys.map(k => gradient[k]).reverse();
-            gradient = {};
-            keys.forEach((k, i) => gradient[k] = values[i]);
-        }
+                    const formatNum = (num) => {
+                        if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                        return Math.floor(num).toString();
+                    };
 
-        if (heatLayer) map.removeLayer(heatLayer);
-        heatLayer = L.heatLayer(finalPoints, { 
-            radius, blur, 
-            minOpacity: 0.05, 
-            max: maxIntensity || 1,
-            gradient: gradient
-        }).addTo(map);
-        if (heatLayer._canvas) heatLayer._canvas.style.opacity = opacity;
-    }
-
-    function togglePlayback() {
-        isPlaying = !isPlaying;
-        document.getElementById('playBtn').textContent = isPlaying ? "Pause Animation" : "Play Animation";
-        if (isPlaying) animate();
-        else cancelAnimationFrame(animationFrame);
-    }
-
-    function animate() {
-        const range = timeSlider.get().map(v => +v);
-        const bounds = timeSlider.options.range;
-        const step = (bounds.max - bounds.min) / 300;
-        let newEnd = range[1] + step;
-        if (newEnd > bounds.max) {
-            newEnd = bounds.max;
-            togglePlayback();
-        }
-        timeSlider.set([range[0], newEnd]);
-        if (isPlaying) animationFrame = requestAnimationFrame(animate);
-    }
-
-    ['radiusSlider', 'blurSlider', 'opacitySlider', 'thresholdSlider'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updateHeatmap);
-    });
-    ['scalingSelect', 'seasonSelect', 'themeSelect', 'invertCheck'].forEach(id => {
-        document.getElementById(id).addEventListener(id.includes('Check') ? 'change' : 'change', updateHeatmap);
-    });
-    document.getElementById('playBtn').addEventListener('click', togglePlayback);
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('loading').style.display = 'block';
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                rawLocations = TimelineParser.parse(data);
-                if (!rawLocations.length) { alert("No data found."); return; }
-                
-                document.getElementById('pointCount').textContent = rawLocations.length.toLocaleString();
-                document.getElementById('distance').textContent = DistanceCalculator.calculateTotal(rawLocations).toFixed(0);
-                document.getElementById('statsDisplay').style.display = 'block';
-                document.getElementById('advancedSettings').style.display = 'block';
-
-                let min = Infinity, max = -Infinity;
-                for(let i=0; i<rawLocations.length; i++) {
-                    const ts = rawLocations[i].ts;
-                    if (ts > 0) {
-                        if (ts < min) min = ts;
-                        if (ts > max) max = ts;
+                    document.getElementById('pointCount').textContent = formatNum(rawLocations.length);
+                    document.getElementById('distance').textContent = formatNum(DistanceCalculator.calculateTotal(rawLocations));
+                    document.getElementById('statsDisplay').style.display = 'flex';
+                    document.getElementById('playback-dock').style.display = 'flex';
+                    let min = Infinity, max = -Infinity;
+                    for (let i = 0; i < rawLocations.length; i++) {
+                        const ts = rawLocations[i].ts;
+                        if (ts > 0) { if (ts < min) min = ts; if (ts > max) max = ts; }
                     }
-                }
-                if (min === Infinity) { min = 0; max = Date.now(); }
-
-                if (timeSlider) timeSlider.destroy();
-                timeSlider = noUiSlider.create(document.getElementById('time-slider'), {
-                    start: [min, max], connect: true, range: { min, max },
-                    tooltips: [ { to: v => new Date(+v).toLocaleDateString() }, { to: v => new Date(+v).toLocaleDateString() } ]
-                });
-                timeSlider.on('update', updateHeatmap);
-
-                updateHeatmap();
-                map.fitBounds(L.latLngBounds(rawLocations.map(l => [l.lat, l.lng])));
-            } catch (err) { console.error("Error Processing:", err); alert("Error processing data."); }
-            finally { document.getElementById('loading').style.display = 'none'; }
-        };
-        reader.readAsText(file);
-    });
-</script>
-
+                    if (min === Infinity) { min = 0; max = Date.now(); }
+                    if (timeSlider) timeSlider.destroy();
+                    timeSlider = noUiSlider.create(document.getElementById('time-slider'), {
+                        start: [min, max], connect: true, range: { min, max },
+                        tooltips: [{ to: v => new Date(+v).toLocaleDateString() }, { to: v => new Date(+v).toLocaleDateString() }]
+                    });
+                    timeSlider.on('update', updateHeatmap);
+                    updateHeatmap();
+                    map.fitBounds(L.latLngBounds(rawLocations.map(l => [l.lat, l.lng])));
+                } catch (err) { console.error(err); alert("Error processing data."); }
+                finally { document.getElementById('loading').style.display = 'none'; }
+            };
+            reader.readAsText(file);
+        });
+    </script>
 </body>
+
 </html>
