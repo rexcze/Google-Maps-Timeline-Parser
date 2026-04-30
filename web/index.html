@@ -20,7 +20,7 @@
         }
         header {
             background-color: #ffffff;
-            padding: 1rem 2rem;
+            padding: 0.75rem 2rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
@@ -29,7 +29,7 @@
         }
         .controls {
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
             align-items: center;
         }
         #map {
@@ -37,12 +37,23 @@
             width: 100%;
         }
         .stats {
-            background: white;
+            background: #f1f3f4;
             padding: 0.5rem 1rem;
             border-radius: 4px;
-            font-size: 0.9rem;
-            color: #333;
-            border: 1px solid #ddd;
+            font-size: 0.85rem;
+            color: #5f6368;
+            border: 1px solid #dadce0;
+        }
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .control-item label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #70757a;
+            text-transform: uppercase;
         }
         .file-input-wrapper {
             position: relative;
@@ -81,6 +92,10 @@
             z-index: 2000;
             display: none;
         }
+        input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -88,12 +103,18 @@
 <div id="container">
     <header>
         <div>
-            <h1 style="margin:0; font-size: 1.2rem; color: #4285f4;">Timeline Heatmap</h1>
+            <h1 style="margin:0; font-size: 1.1rem; color: #4285f4;">Timeline Heatmap</h1>
         </div>
         <div class="controls">
             <div id="statsDisplay" class="stats" style="display: none;">
-                Points: <span id="pointCount">0</span> | Distance: <span id="distance">0</span> km
+                Points: <span id="pointCount">0</span> | Dist: <span id="distance">0</span> km
             </div>
+            
+            <div id="radiusControl" class="control-item" style="display: none;">
+                <label for="radiusSlider">Radius: <span id="radiusValue">25</span></label>
+                <input type="range" id="radiusSlider" min="1" max="50" value="25">
+            </div>
+
             <div class="file-input-wrapper">
                 <button class="btn">Upload JSON</button>
                 <input type="file" id="fileInput" accept=".json">
@@ -212,11 +233,27 @@
 
     // App Initialization
     const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors, &copy; CARTO'
     }).addTo(map);
 
     let heatLayer = null;
+    let currentPoints = [];
+
+    function updateHeatmap() {
+        if (!currentPoints.length) return;
+        
+        const radius = parseInt(document.getElementById('radiusSlider').value);
+        document.getElementById('radiusValue').textContent = radius;
+
+        if (heatLayer) map.removeLayer(heatLayer);
+        heatLayer = L.heatLayer(currentPoints, {
+            radius: radius,
+            blur: Math.max(1, Math.floor(radius * 0.6))
+        }).addTo(map);
+    }
+
+    document.getElementById('radiusSlider').addEventListener('input', updateHeatmap);
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -235,20 +272,19 @@
                     return;
                 }
 
+                currentPoints = locations.map(l => [l.lat, l.lng]);
+
                 // Update Stats
                 const distance = DistanceCalculator.calculateTotal(locations);
                 document.getElementById('pointCount').textContent = locations.length.toLocaleString();
-                document.getElementById('distance').textContent = distance.toFixed(2);
+                document.getElementById('distance').textContent = distance.toFixed(0);
                 document.getElementById('statsDisplay').style.display = 'block';
+                document.getElementById('radiusControl').style.display = 'flex';
 
-                // Update Map
-                if (heatLayer) map.removeLayer(heatLayer);
-                
-                const points = locations.map(l => [l.lat, l.lng]);
-                heatLayer = L.heatLayer(points, {radius: 25, blur: 15}).addTo(map);
+                updateHeatmap();
                 
                 // Fit bounds
-                const bounds = L.latLngBounds(points);
+                const bounds = L.latLngBounds(currentPoints);
                 map.fitBounds(bounds);
 
             } catch (err) {
