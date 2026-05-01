@@ -1,47 +1,54 @@
-# Gemini Project Context: Google Maps Timeline Heatmap (Web)
+# Gemini Project Context: Google Maps Timeline Heatmap (Modern Edition)
 
-This project is a privacy-focused, client-side web application designed to parse and visualize Google Maps Timeline data (JSON). It transforms raw location history into an interactive heatmap with advanced filtering and playback capabilities.
+This project is a privacy-focused, browser-based utility for visualizing Google Maps Timeline data. It has transitioned from a Python-based CLI tool to a modern web application that processes data locally in the browser.
 
 ## Project Overview
 
-- **Purpose**: Provide a modern, browser-based interface for analyzing Google Maps Timeline exports without data ever leaving the user's machine.
+- **Purpose**: Transform Google Maps Timeline JSON exports into interactive heatmaps with advanced filtering and playback features.
 - **Tech Stack**:
-  - **Frontend**: HTML5, Vanilla CSS3 (Glassmorphism), Modern JavaScript (ES6+).
-  - **Mapping**: [Leaflet.js](https://leafletjs.com/) for interactive maps.
-  - **Visualization**: [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for heatmap rendering.
-  - **UI Components**: [noUiSlider](https://refreshless.com/nouislider/) for date range filtering.
-  - **Theming**: Dark and Light mode support with [CartoDB](https://carto.com/basemaps/) basemaps.
-
-### Key Features
-- **Zero-Backend Parsing**: Full privacy; processing via browser File API.
-- **Time Machine**: Chronological date filtering and playback animation.
-- **Seasonality Filters**: View travels specifically by season (Summer, Winter, etc.).
-- **Advanced Heatmap Controls**: Adjust radius, blur, opacity, and sensitivity (noise clipping).
-- **Intensity Scaling**: Support for Additive, Linear, and Logarithmic density scaling.
-- **Custom Palettes**: Includes high-contrast and color-blind friendly themes (Magma, Viridis, Plasma).
+  - **Frontend**: HTML5, CSS3 (Glassmorphism), Vanilla JavaScript (ES6+ Modules).
+  - **Mapping**: [Leaflet.js](https://leafletjs.com/) with [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for rendering.
+  - **UI Components**: [noUiSlider](https://refreshless.com/nouislider/) for chronological filtering.
+  - **Privacy**: Zero-knowledge model; data is processed locally via the File API and never leaves the browser.
 
 ### Architecture
-The application is contained within a single `index.html` file for portability and ease of use.
-- **Models/Logic**: 
-    - `TimelineParser`: Static utility for extracting coordinates and timestamps from various Google Maps JSON formats.
-    - `DistanceCalculator`: Implements the Haversine formula to calculate total travel distance.
-- **State Management**: Local state handles filtered data and UI settings (persisted via `localStorage` where applicable).
-- **View Layer**: Leaflet-based map with custom floating glassmorphism UI cards.
+
+The application is structured as a modular frontend project:
+- **UI Layer** (`index.html`, `css/`): Responsive glassmorphism interface featuring a settings sidebar, a chronological "Time Machine" dock, and real-time statistics.
+- **Core Logic** (`js/app.js`): Orchestrates map initialization, heatmap rendering, state management, and user interactions.
+- **Modules** (`js/modules/`):
+    - `parser.js`: Robust parser for handling various Google Maps semantic JSON formats (visits, activity segments, and raw paths).
+    - `utils.js`: Utility functions including `DistanceCalculator` (Haversine formula).
 
 ## Building and Running
 
 ### Prerequisites
-No build step is required. Any modern web browser is sufficient.
 
-### Usage
-1. Open `index.html` in a web browser.
-2. Upload a Google Maps Timeline JSON file (Takeout export).
-3. Use the **Time Machine** dock at the bottom to filter by date or play an animation of your travel history.
-4. Access **Advanced Options** via the gear icon in the top-right to customize visuals and scaling.
+Since the project uses modern ES6 modules, it must be served through a web server to avoid CORS/security restrictions when using the `file://` protocol.
+
+### Execution
+
+```bash
+# Using Python 3 (recommended)
+python3 -m http.server 8000
+
+# Using Node.js (if installed)
+npx serve .
+```
+
+Navigate to `http://localhost:8000` to use the application.
 
 ## Development Conventions
 
-- **Privacy First**: Never introduce features that send coordinate data to external APIs.
-- **Performance**: Use loops and optimized filtering for large datasets (100k+ points); avoid the spread operator on large arrays to prevent stack overflows.
-- **Theming**: Adhere to the Glassmorphism aesthetic. Use CSS variables defined in `:root` and `.dark-theme` for all colors.
-- **Modularity**: Keep the `TimelineParser` and `DistanceCalculator` logic decoupled from the DOM manipulation.
+- **Modular JS**: All new logic should be encapsulated in ES6 modules within `js/modules/`.
+- **Stateless Data Processing**: Avoid persisting location data. Keep data in-memory within `rawLocations` and rely on `localStorage` only for non-sensitive UI preferences.
+- **CSS Standards**: Maintain the "Glassmorphism" aesthetic using semi-transparent backgrounds, `backdrop-filter: blur()`, and CSS variables for theme management.
+- **Heatmap Performance**: Large datasets should be handled efficiently. Use the `scaling` and `threshold` logic in `app.js` to manage point density.
+- **Type Safety**: While using Vanilla JS, maintain clear function signatures and use JSDoc where appropriate for complex data structures.
+
+## Key Files
+
+- `index.html`: Main UI structure and onboarding modal.
+- `js/app.js`: Main entry point and event orchestration.
+- `js/modules/parser.js`: Timeline JSON parsing logic.
+- `css/style.css`: The "Modern Edition" visual design.
