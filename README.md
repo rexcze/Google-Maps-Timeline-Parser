@@ -28,10 +28,19 @@ Your privacy is the core of this project. Unlike other visualization tools, this
 No installation is required. You only need a modern web browser (Chrome, Firefox, Safari, or Edge).
 
 ### Usage
-1. Open `index.html` in your browser.
-2. Drag and drop your Google Maps Timeline JSON file onto the landing page, or click **Upload your JSON**.
-3. Once the data is processed, use the **Time Machine** at the bottom to explore different dates.
-4. Access **Advanced Options** via the gear icon to customize the map's appearance.
+
+> **Note:** Because this project uses modern ES6 JavaScript modules, you must serve it through a web server. Browsers block modules when opened via the `file://` protocol (double-clicking the file) for security reasons.
+
+1.  Open your terminal in the project directory.
+2.  Start a local web server:
+    ```bash
+    # Using Python 3
+    python3 -m http.server 8000
+    ```
+3.  Navigate to `http://localhost:8000` in your browser.
+4.  Drag and drop your Google Maps Timeline JSON file onto the landing page, or click **Select JSON Export**.
+5.  Once the data is processed, use the **Time Machine** at the bottom to explore different dates.
+6.  Access **Settings** via the gear icon in the top-right to customize the map's appearance.
 
 ## 📂 How to Export Your Data
 
