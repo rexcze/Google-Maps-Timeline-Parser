@@ -2,6 +2,8 @@
 
 An interactive, privacy-focused web application for visualizing Google Maps Timeline history as a beautiful heatmap. Analyze your travel patterns, relive journeys, and explore your location history with advanced filtering and playback capabilities—all directly in your browser.
 
+![Timeline Heatmap Preview](https://via.placeholder.com/800x450?text=Timeline+Heatmap+Preview)
+
 ## 🛡️ Privacy-First Local Processing
 
 Your privacy is the core of this project. Unlike other visualization tools, this application operates on a **Zero-Knowledge** model:
@@ -19,8 +21,9 @@ Your privacy is the core of this project. Unlike other visualization tools, this
 - **Advanced Heatmap Controls:** Fine-tune the visualization with adjustable radius, blur, opacity, and sensitivity (noise clipping).
 - **Intensity Scaling:** Switch between Additive, Linear, and Logarithmic density scaling to highlight different patterns in your data.
 - **Custom Palettes:** Choose from several high-contrast and aesthetic color themes, including Magma, Viridis, Plasma, and Cold.
+- **Invert Colors:** Toggle color inversion for any palette to better suit your map's theme or personal preference.
 - **Real-Time Statistics:** Automatically calculates total data points parsed and total travel distance (in kilometers) using the Haversine formula.
-- **Modern Glassmorphism UI:** A clean, responsive interface that supports both Light and Dark modes (with auto-detection).
+- **Modern Glassmorphism UI:** A clean, responsive interface with a semi-transparent "glass" aesthetic that supports both Light and Dark modes.
 
 ## 🚀 Getting Started
 
@@ -46,19 +49,41 @@ No installation is required. You only need a modern web browser (Chrome, Firefox
 
 To use this tool, you need your Google Maps Timeline data in JSON format.
 
-### Android
-1. Open **Google Maps** and tap your profile picture.
-2. Select **Your Timeline**.
-3. Tap the menu (three dots) and choose **Settings and privacy**.
-4. Scroll down and select **Export Timeline data** as JSON.
+### Using Google Takeout (Recommended)
+1. Go to [Google Takeout](https://takeout.google.com/).
+2. Deselect all and then select only **Location History (Timeline)**.
+3. Click **Next step**, choose your preferred delivery method, and click **Create export**.
+4. Once the export is ready, download and unzip it. You are looking for a file named `Records.json` or files within the `Semantic Location History` folder.
 
-### iOS
-1. Open **Google Maps** and tap your profile picture.
-2. Select **Your Timeline**.
-3. Tap the menu and go to **Settings**.
-4. Scroll to **Location Settings** and select **Export Timeline data** as JSON.
+### Mobile Devices
+- **Android:** Maps > Profile > Your Timeline > Menu > Settings and privacy > Export Timeline data.
+- **iOS:** Maps > Profile > Your Timeline > Menu > Settings > Export Timeline data.
 
-*Alternatively, you can use [Google Takeout](https://takeout.google.com/) to export your "Location History" or "Timeline" data.*
+## ❓ FAQ
+
+**Q: Is my data sent to any server?**
+A: No. All processing happens locally in your browser. You can even run this application offline once it's loaded.
+
+**Q: What file formats are supported?**
+A: The application supports the standard `Records.json` format, the older `Location History.json` format, and the newer Semantic JSON files provided by Google.
+
+**Q: The heatmap looks too crowded, how can I fix it?**
+A: Use the **Sensitivity** slider in Settings to filter out low-density points, or adjust the **Radius** and **Blur** to fine-tune the visualization.
+
+## 💻 Browser Support
+
+This application relies on modern web technologies (ES6 Modules, CSS Variables, Backdrop Filter). It is compatible with the latest versions of:
+- Google Chrome
+- Mozilla Firefox
+- Microsoft Edge
+- Apple Safari
+
+## 🗺️ Roadmap
+
+- [ ] Support for GPX and KML file imports.
+- [ ] Ability to export high-resolution map snapshots.
+- [ ] Detailed "Visit" markers for specific points of interest.
+- [ ] Multi-file support for merging multiple years of history.
 
 ## 🛠️ Technical Stack
 
@@ -67,3 +92,11 @@ To use this tool, you need your Google Maps Timeline data in JSON format.
 - **Visualization:** [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for high-performance heatmap rendering.
 - **UI Components:** [noUiSlider](https://refreshless.com/nouislider/) for smooth date range filtering.
 - **Basemaps:** [CartoDB](https://carto.com/basemaps/) for clean light and dark map themes.
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to open an issue or submit a pull request if you have ideas for new features or improvements.
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
