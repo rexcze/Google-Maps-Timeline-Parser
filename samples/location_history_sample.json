@@ -1,0 +1,46 @@
+{
+  "semanticSegments": [
+    {
+      "startTime": "2026-05-10T08:00:00.000Z",
+      "endTime": "2026-05-10T12:30:00.000Z",
+      "placeVisit": {
+        "location": {
+          "latitudeE7": 491950600,
+          "longitudeE7": 166068370,
+          "placeId": "ChIJ_6tT1E-REkcRpxzN...",
+          "address": "Brno, Czechia",
+          "name": "Coffee Mastery Lab",
+          "sourceInfo": { "deviceTag": 12345678 }
+        },
+        "visitConfidence": 95,
+        "locationConfidence": 98,
+        "placeVisitImportance": "HIGH_IMPORTANCE"
+      }
+    },
+    {
+      "startTime": "2026-05-10T12:30:01.000Z",
+      "endTime": "2026-05-10T12:45:00.000Z",
+      "activitySegment": {
+        "startLocation": {
+          "latitudeE7": 491950600,
+          "longitudeE7": 166068370
+        },
+        "endLocation": {
+          "latitudeE7": 492002200,
+          "longitudeE7": 166075540
+        },
+        "duration": {
+          "startTimestamp": "2026-05-10T12:30:01.000Z",
+          "endTimestamp": "2026-05-10T12:45:00.000Z"
+        },
+        "distance": 1250,
+        "activityType": "WALKING",
+        "confidence": "HIGH",
+        "activities": [
+          { "activityType": "WALKING", "probability": 98.5 },
+          { "activityType": "RUNNING", "probability": 1.5 }
+        ]
+      }
+    }
+  ]
+}

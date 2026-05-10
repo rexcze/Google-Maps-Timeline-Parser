@@ -18,6 +18,7 @@ env/
 *.gpx
 !web/*.html
 !example.png
+!samples/*.json
 
 # IDEs & System
 .idea/
