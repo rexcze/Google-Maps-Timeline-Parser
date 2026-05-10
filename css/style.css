@@ -768,3 +768,233 @@ body.dark-theme .welcome-privacy-badge {
     border-bottom-left-radius: 12px !important;
     border-bottom-right-radius: 12px !important;
 }
+
+/* ══════════════════════════════════════════════════════════
+   Snapshot Mode
+   ══════════════════════════════════════════════════════════ */
+
+.snapshot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.snapshot-overlay.snapshot-active {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.snapshot-overlay.snapshot-fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Dim mask — dark overlay with a hole carved for the viewfinder */
+.snapshot-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    clip-path: polygon(
+        0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%,
+        var(--vf-left, 25%) var(--vf-top, 25%),
+        var(--vf-left, 25%) calc(var(--vf-top, 25%) + var(--vf-height, 50%)),
+        calc(var(--vf-left, 25%) + var(--vf-width, 50%)) calc(var(--vf-top, 25%) + var(--vf-height, 50%)),
+        calc(var(--vf-left, 25%) + var(--vf-width, 50%)) var(--vf-top, 25%),
+        var(--vf-left, 25%) var(--vf-top, 25%)
+    );
+    pointer-events: none;
+}
+
+body.dark-theme .snapshot-overlay::before {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Viewfinder */
+.snapshot-viewfinder {
+    position: absolute;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    cursor: move;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        0 0 30px rgba(66, 133, 244, 0.15);
+    transition: box-shadow 0.2s;
+    touch-action: none;
+}
+
+.snapshot-viewfinder:hover {
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        0 0 40px rgba(66, 133, 244, 0.25);
+}
+
+/* Crosshair guides (rule-of-thirds) */
+.snapshot-crosshair {
+    position: absolute;
+    pointer-events: none;
+}
+
+.snapshot-crosshair-h {
+    top: 33.33%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.snapshot-crosshair-v {
+    left: 33.33%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Size label */
+.snapshot-size-label {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+/* Resize handles — corners */
+.snapshot-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    z-index: 10;
+    touch-action: none;
+}
+
+.snapshot-handle-nw { top: -6px; left: -6px; cursor: nw-resize; }
+.snapshot-handle-ne { top: -6px; right: -6px; cursor: ne-resize; }
+.snapshot-handle-sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+.snapshot-handle-se { bottom: -6px; right: -6px; cursor: se-resize; }
+
+/* Resize handles — edges */
+.snapshot-handle-n { top: -4px; left: 50%; transform: translateX(-50%); width: 32px; height: 6px; border-radius: 3px; cursor: n-resize; }
+.snapshot-handle-s { bottom: -4px; left: 50%; transform: translateX(-50%); width: 32px; height: 6px; border-radius: 3px; cursor: s-resize; }
+.snapshot-handle-e { right: -4px; top: 50%; transform: translateY(-50%); width: 6px; height: 32px; border-radius: 3px; cursor: e-resize; }
+.snapshot-handle-w { left: -4px; top: 50%; transform: translateY(-50%); width: 6px; height: 32px; border-radius: 3px; cursor: w-resize; }
+
+/* Snapshot Toolbar */
+.snapshot-toolbar.glass-card {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-radius: 20px;
+    z-index: 1600;
+    animation: snapshotToolbarIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 0.1s;
+}
+
+@keyframes snapshotToolbarIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+.snapshot-control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.snapshot-control-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--sub-text);
+    white-space: nowrap;
+}
+
+.snapshot-seg {
+    margin-top: 0;
+}
+
+.snapshot-seg .seg-btn {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+}
+
+/* Snapshot action buttons */
+.snapshot-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.snapshot-btn svg {
+    flex-shrink: 0;
+}
+
+.snapshot-btn-cancel {
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+}
+
+.snapshot-btn-cancel:hover {
+    background: rgba(229, 75, 75, 0.1);
+    color: #e54b4b;
+    border-color: rgba(229, 75, 75, 0.3);
+}
+
+.snapshot-btn-download {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+}
+
+.snapshot-btn-download:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.5);
+}
+
+.snapshot-btn-download:active {
+    transform: translateY(0);
+}
+
+/* Dim UI chrome while snapshot is active */
+body.snapshot-active #playback-dock,
+body.snapshot-active .right-pill,
+body.snapshot-active .left-pill {
+    opacity: 0.3;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
